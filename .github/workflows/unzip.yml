@@ -1,0 +1,32 @@
+name: Unzip Project
+on:
+  push:
+    paths:
+      - '.github/workflows/unzip.yml'
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract zip
+        run: |
+          if [ -f "Flow-main.zip" ]; then
+            unzip -q Flow-main.zip
+            rm Flow-main.zip
+            if [ -d "Flow-main" ]; then
+              shopt -s dotglob
+              mv Flow-main/* .
+              rmdir Flow-main
+            fi
+          fi
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Auto-unzipped project files" || exit 0
+          git push
