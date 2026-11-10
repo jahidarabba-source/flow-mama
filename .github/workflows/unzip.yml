@@ -21,6 +21,7 @@ jobs:
             unzip -q Flow-main.zip
             rm Flow-main.zip
             if [ -d "Flow-main" ]; then
+              rm -rf Flow-main/.github
               cp -r Flow-main/. .
               rm -rf Flow-main
             fi
