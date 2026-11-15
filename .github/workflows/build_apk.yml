@@ -21,6 +21,21 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Fix and Optimize Image for Android
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 -c "
+          from PIL import Image
+          import os
+
+          path = 'app/src/main/res/drawable/ic_flow_logo.png'
+          if os.path.exists(path):
+              img = Image.open(path).convert('RGBA')
+              img.thumbnail((512, 512))
+              img.save(path, 'PNG')
+              print('Image successfully converted to clean Android PNG!')
+          "
+
       - name: Build Release APK
         run: |
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> gradle.properties
