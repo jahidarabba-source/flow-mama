@@ -27,16 +27,13 @@ jobs:
           echo "kotlin.daemon.jvmargs=-Xmx3072m" >> gradle.properties
           ./gradlew assembleGithubRelease --no-daemon
 
-      - name: Sign APK (if unsigned)
+      - name: Sign APK with Official apksigner (v1, v2, v3)
         run: |
+          keytool -genkey -v -keystore release.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Flow,O=Android,C=US"
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name apksigner | sort | tail -n 1)
           for f in $(find app/build/outputs/apk -name "*armeabi-v7a*.apk"); do
-            if [[ "$f" == *"unsigned"* ]]; then
-              echo "Signing $f..."
-              [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-              jarsigner -keystore debug.keystore -storepass android -keypass android "$f" androiddebugkey
-              SIGNED_NAME="${f//-unsigned/}"
-              mv "$f" "$SIGNED_NAME"
-            fi
+            echo "Signing $f with apksigner..."
+            $APKSIGNER sign --ks release.keystore --ks-pass pass:android --ks-key-alias androiddebugkey --key-pass pass:android "$f"
           done
 
       - name: Upload Single V7 APK
