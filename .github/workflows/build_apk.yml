@@ -21,14 +21,26 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Increase Memory & Build APK
+      - name: Build Release APK
         run: |
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m" >> gradle.properties
           echo "kotlin.daemon.jvmargs=-Xmx3072m" >> gradle.properties
-          ./gradlew assembleGithubDebug --no-daemon
+          ./gradlew assembleGithubRelease --no-daemon
 
-      - name: Upload APK
+      - name: Sign APK (if unsigned)
+        run: |
+          for f in $(find app/build/outputs/apk -name "*armeabi-v7a*.apk"); do
+            if [[ "$f" == *"unsigned"* ]]; then
+              echo "Signing $f..."
+              [ -f debug.keystore ] || keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+              jarsigner -keystore debug.keystore -storepass android -keypass android "$f" androiddebugkey
+              SIGNED_NAME="${f//-unsigned/}"
+              mv "$f" "$SIGNED_NAME"
+            fi
+          done
+
+      - name: Upload Single V7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: My-YouTube-App
-          path: app/build/outputs/apk/**/*.apk
+          name: My-YouTube-v7-App
+          path: app/build/outputs/apk/**/app*armeabi-v7a*.apk
