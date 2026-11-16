@@ -73,8 +73,7 @@ class NowPlaying
 
         private suspend fun publish(force: Boolean) {
             lock.withLock {
-                // The players live on the main thread.
-                val now = withContext(Dispatchers.Main.immediate) { current() }.copy(link = db.groups().group()?.link)
+                val now = current().copy(link = db.groups().group()?.link)
                 val previous = last
                 if (!force && previous != null && !changed(previous, now)) return
                 if (live.send(now) != null) {
@@ -95,13 +94,13 @@ class NowPlaying
         }
 
         /** The player in use: music while it plays or when the video player is idle, otherwise video. */
-        private fun current(): LiveMessage.Now {
+        private suspend fun current(): LiveMessage.Now = withContext(Dispatchers.Main.immediate) {
             val track = EnhancedMusicPlayerManager.currentTrack.value
             val music = EnhancedMusicPlayerManager.playerState.value
             val vol = volume()
             if (track != null && (music.isPlaying || !GlobalPlayerState.playerState.value.isPlaying)) {
                 val queue = EnhancedMusicPlayerManager.queue.value
-                return LiveMessage.Now(
+                return@withContext LiveMessage.Now(
                     video = track.videoId,
                     title = track.title,
                     by = track.artist,
@@ -114,9 +113,9 @@ class NowPlaying
                     index = queue.indexOfFirst { it.videoId == track.videoId }.coerceAtLeast(0),
                 )
             }
-            val current = GlobalPlayerState.currentVideo.value ?: return LiveMessage.Now(video = null)
+            val current = GlobalPlayerState.currentVideo.value ?: return@withContext LiveMessage.Now(video = null)
             val queue = video.queueVideos.value
-            return LiveMessage.Now(
+            return@withContext LiveMessage.Now(
                 video = current.id,
                 title = current.title,
                 by = current.channelName,
